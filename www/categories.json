@@ -1,0 +1,194 @@
+[
+ {
+  "id": "all",
+  "name": "الكل",
+  "color": "#c9a84c",
+  "type": "all"
+ },
+ {
+  "id": "ajplus",
+  "name": "AJ+",
+  "color": "#c9a84c",
+  "type": "source"
+ },
+ {
+  "id": "smf",
+  "name": "New Media Academy موسم متحف المستقبل",
+  "color": "#7c2d12",
+  "type": "season"
+ },
+ {
+  "id": "s8",
+  "name": "New Media Academy الموسم الثامن",
+  "color": "#0e7490",
+  "type": "season"
+ },
+ {
+  "id": "s7",
+  "name": "New Media Academy الموسم السابع",
+  "color": "#0f766e",
+  "type": "season"
+ },
+ {
+  "id": "s6",
+  "name": "New Media Academy الموسم السادس",
+  "color": "#6b21a8",
+  "type": "season"
+ },
+ {
+  "id": "s5",
+  "name": "New Media Academy الموسم الخامس",
+  "color": "#1e40af",
+  "type": "season"
+ },
+ {
+  "id": "s4",
+  "name": "New Media Academy الموسم الرابع",
+  "color": "#991b1b",
+  "type": "season"
+ },
+ {
+  "id": "s3",
+  "name": "New Media Academy الموسم الثالث",
+  "color": "#166534",
+  "type": "season"
+ },
+ {
+  "id": "s1",
+  "name": "New Media Academy الموسم الأول",
+  "color": "#b45309",
+  "type": "season"
+ },
+ {
+  "id": "history",
+  "name": "تاريخ",
+  "color": "#92400e",
+  "type": "topic"
+ },
+ {
+  "id": "biology",
+  "name": "أحياء",
+  "color": "#15803d",
+  "type": "topic"
+ },
+ {
+  "id": "medicine",
+  "name": "طب",
+  "color": "#b91c1c",
+  "type": "topic"
+ },
+ {
+  "id": "psychology",
+  "name": "علم نفس",
+  "color": "#6b21a8",
+  "type": "topic"
+ },
+ {
+  "id": "technology",
+  "name": "تكنولوجيا",
+  "color": "#1d4ed8",
+  "type": "topic"
+ },
+ {
+  "id": "economics",
+  "name": "اقتصاد",
+  "color": "#0f766e",
+  "type": "topic"
+ },
+ {
+  "id": "characters",
+  "name": "شخصيات",
+  "color": "#c9a84c",
+  "type": "topic"
+ },
+ {
+  "id": "general",
+  "name": "عام",
+  "color": "#4b5563",
+  "type": "topic"
+ },
+ {
+  "id": "sociology",
+  "name": "علم اجتماع",
+  "color": "#374151",
+  "type": "topic"
+ },
+ {
+  "id": "physics",
+  "name": "فيزياء",
+  "color": "#1e40af",
+  "type": "topic"
+ },
+ {
+  "id": "sports",
+  "name": "رياضة",
+  "color": "#059669",
+  "type": "topic"
+ },
+ {
+  "id": "wars",
+  "name": "حروب",
+  "color": "#991b1b",
+  "type": "topic"
+ },
+ {
+  "id": "philosophy",
+  "name": "فلسفة",
+  "color": "#7c2d12",
+  "type": "topic"
+ },
+ {
+  "id": "literature",
+  "name": "أدب",
+  "color": "#9d174d",
+  "type": "topic"
+ },
+ {
+  "id": "astronomy",
+  "name": "فلك",
+  "color": "#1e3a5f",
+  "type": "topic"
+ },
+ {
+  "id": "politics",
+  "name": "سياسة",
+  "color": "#dc2626",
+  "type": "topic"
+ },
+ {
+  "id": "art",
+  "name": "فن",
+  "color": "#d97706",
+  "type": "topic"
+ },
+ {
+  "id": "architecture",
+  "name": "عمارة",
+  "color": "#78350f",
+  "type": "topic"
+ },
+ {
+  "id": "cinema",
+  "name": "سينما",
+  "color": "#7e22ce",
+  "type": "topic"
+ },
+ {
+  "id": "geology",
+  "name": "جيولوجيا",
+  "color": "#065f46",
+  "type": "topic"
+ },
+ {
+  "id": "geography",
+  "name": "جغرافيا",
+  "color": "#0e7490",
+  "type": "topic"
+ },
+ {
+  "id": "chemistry",
+  "name": "كيمياء",
+  "color": "#166534",
+  "type": "topic"
+ }
+]

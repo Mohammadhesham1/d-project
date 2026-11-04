@@ -1,0 +1,30 @@
+name: Build Android APK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore: ["www/episodes.json", "www/categories.json", "README.md"]
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: 22}
+      - uses: actions/setup-java@v4
+        with: {distribution: temurin, java-version: 21}
+      - name: Inject repo for live data updates
+        run: sed -i "s|__REPO__|${{ github.repository }}|; s|__BRANCH__|${{ github.ref_name }}|" www/app.js
+      - run: npm install
+      - run: npx cap add android
+      - name: Add yt-dlp + native download plugin
+        run: python3 scripts/patch_android.py
+      - run: npx @capacitor/assets generate --android --iconBackgroundColor '#080808' --splashBackgroundColor '#080808'
+      - run: npx cap sync android
+      - name: Build debug APK
+        working-directory: android
+        run: chmod +x gradlew && ./gradlew assembleDebug
+      - uses: actions/upload-artifact@v4
+        with:
+          name: aldahih-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
