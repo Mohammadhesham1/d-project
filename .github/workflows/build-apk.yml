@@ -4,6 +4,11 @@ on:
   push:
     branches: [main]
     paths-ignore: ["www/episodes.json", "www/categories.json", "README.md"]
+permissions:
+  contents: write
+concurrency:
+  group: data-sync
+  cancel-in-progress: false
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -13,6 +18,23 @@ jobs:
         with: {node-version: 22}
       - uses: actions/setup-java@v4
         with: {distribution: temurin, java-version: 21}
+      - uses: actions/setup-python@v5
+        with: {python-version: "3.12"}
+      - name: Sync AJ+ playlist into the bundled data
+        continue-on-error: true
+        run: pip install yt-dlp && python scripts/update_episodes.py
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}
+      - name: Commit refreshed data (so the app can update itself)
+        continue-on-error: true
+        run: |
+          if [ -n "$(git status --porcelain www/episodes.json)" ]; then
+            git config user.name "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add www/episodes.json
+            git commit -m "chore: sync episodes"
+            git pull --rebase origin ${{ github.ref_name }} && git push
+          fi
       - name: Inject repo for live data updates
         run: sed -i "s|__REPO__|${{ github.repository }}|; s|__BRANCH__|${{ github.ref_name }}|" www/app.js
       - run: npm install

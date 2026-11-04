@@ -702,9 +702,6 @@ function episodeCardHTML(ep){
         background:rgba(201,168,76,.9);align-items:center;justify-content:center;
         box-shadow:0 4px 20px rgba(201,168,76,.4);">${svgPlay(22,'#000')}</div>
     </div>
-    ${cat?`<div style="position:absolute;top:8px;right:8px;background:${color}dd;border-radius:5px;
-      padding:2px 8px;font-size:.68rem;color:white;font-weight:600;backdrop-filter:blur(4px);
-      font-family:'Cairo',sans-serif;">${cat.name}</div>`:''}
     ${ep.duration?`<div style="position:absolute;bottom:8px;right:8px;background:rgba(0,0,0,.82);border-radius:4px;padding:2px 6px;font-size:.68rem;color:rgba(255,255,255,.9);font-family:'Cairo',sans-serif;letter-spacing:.02em">${ep.duration}</div>`:''}
     ${ep.views?`<div style="position:absolute;bottom:8px;left:8px;background:rgba(0,0,0,.72);border-radius:4px;padding:2px 6px;font-size:.65rem;color:rgba(255,255,255,.7);font-family:'Cairo',sans-serif;display:flex;align-items:center;gap:3px;"><svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>${fmtViews(ep.views)}</div>`:''}
   </div>

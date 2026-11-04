@@ -1,7 +1,10 @@
 // ══════════════════════════════════════════════
 //  التحميلات + قوائم التشغيل + الضغط المطوّل
 // ══════════════════════════════════════════════
-const YtDlp = IS_NATIVE ? Capacitor.registerPlugin('YtDlp') : null;
+let PLUGIN_ERR = '';
+const YtDlp = (() => { try { return IS_NATIVE ? Capacitor.registerPlugin('YtDlp') : null; } catch (e) { PLUGIN_ERR = String(e.message || e); return null; } })();
+const nat = (m, a) => { try { return Promise.resolve(YtDlp[m](a)); } catch (e) { return Promise.reject(e); } };
+window.addEventListener('error', e => { if (/app\.js|downloads\.js|releases\.js/.test(e.filename || '')) toast('خطأ: ' + (e.message || '')); });
 const store = {
   get: (k, d) => { try { return JSON.parse(localStorage.getItem(k)) ?? d; } catch { return d; } },
   set: (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} },
@@ -58,9 +61,9 @@ function dlSheet(epId) {
       <span>${label}</span><small>${it ? (it.status === 'done' ? '✓ محمّلة — تشغيل' : 'قيد التحميل') : hint}</small></button>`;
   };
   sheet(`<div class="sh-head"><img src="https://img.youtube.com/vi/${ep.videoId}/mqdefault.jpg"/><div><h3>${esc(ep.title)}</h3><small>${esc(ep.duration || '')}</small></div></div>
-    ${IS_NATIVE ? `${opt('video', '720', 'تنزيل الفيديو 720p', 'موصى به')}${opt('video', '480', 'تنزيل 480p', 'أصغر حجماً')}${opt('video', '360', 'تنزيل 360p', 'الأخف')}${opt('video', '1080', 'تنزيل 1080p', 'أعلى جودة')}${opt('audio', '0', 'صوت فقط', 'الأسرع والأصغر')}
+    ${YtDlp && !PLUGIN_ERR ? `${opt('video', '720', 'تنزيل الفيديو 720p', 'موصى به')}${opt('video', '480', 'تنزيل 480p', 'أصغر حجماً')}${opt('video', '360', 'تنزيل 360p', 'الأخف')}${opt('video', '1080', 'تنزيل 1080p', 'أعلى جودة')}${opt('audio', '0', 'صوت فقط', 'الأسرع والأصغر')}
     <button class="sh-opt" data-act="goDownloads"><span>فتح صفحة التحميلات</span></button>`
-      : `<p class="sh-note">التحميل متاح داخل تطبيق الأندرويد فقط.</p>`}`);
+      : `<p class="sh-note">${IS_NATIVE ? 'إضافة التحميل غير متاحة في هذه النسخة: ' + esc(PLUGIN_ERR || 'غير معروف') : 'التحميل متاح داخل تطبيق الأندرويد فقط.'}</p>`}`);
 }
 
 // ── منطق التحميل ──
@@ -77,8 +80,8 @@ function activeCount() { return DL.filter(d => d.status === 'downloading').lengt
 let svcOn = false;
 function syncService() {
   const need = DL.some(d => d.status === 'downloading' || d.status === 'queued');
-  if (need && !svcOn) { svcOn = true; YtDlp?.serviceStart(); }
-  if (!need && svcOn) { svcOn = false; YtDlp?.serviceStop(); }
+  if (need && !svcOn) { svcOn = true; YtDlp && nat('serviceStart').catch(() => {}); }
+  if (!need && svcOn) { svcOn = false; YtDlp && nat('serviceStop').catch(() => {}); }
 }
 function pump() {
   if (!YtDlp) return;
@@ -90,7 +93,7 @@ function pump() {
 async function run(it) {
   it.status = 'downloading'; it.progress = it.progress || 0; saveDL(); refreshDL(true);
   try {
-    const r = await YtDlp.download({ key: it.key, videoId: it.videoId, mode: it.mode, quality: it.quality, aria2c: SET.aria2c });
+    const r = await nat('download', { key: it.key, videoId: it.videoId, mode: it.mode, quality: it.quality, aria2c: SET.aria2c });
     it.status = 'done'; it.progress = 100; it.path = r.path; it.size = r.size; it.doneAt = Date.now(); it.speed = '';
     toast('اكتمل التحميل ✓ ' + it.title);
   } catch (e) {
@@ -98,29 +101,28 @@ async function run(it) {
   }
   saveDL(); pump(); refreshDL(true);
 }
-function pauseDl(key) { const it = DL.find(d => d.key === key); if (!it) return; it.status = 'paused'; it.speed = ''; saveDL(); YtDlp?.cancel({ key }); refreshDL(true); syncService(); }
+function pauseDl(key) { const it = DL.find(d => d.key === key); if (!it) return; it.status = 'paused'; it.speed = ''; saveDL(); YtDlp && nat('cancel', { key }).catch(() => {}); refreshDL(true); syncService(); }
 function resumeDl(key) { const it = DL.find(d => d.key === key); if (!it) return; it.status = 'queued'; it.error = ''; saveDL(); pump(); refreshDL(true); }
 async function removeDl(key) {
   const it = DL.find(d => d.key === key); if (!it) return;
-  if (it.status === 'downloading') await YtDlp?.cancel({ key });
-  try { await YtDlp?.deleteFiles({ prefix: `${it.videoId}_${dlTag(it)}` }); } catch {}
+  if (YtDlp) { try { if (it.status === 'downloading') await nat('cancel', { key }); await nat('deleteFiles', { prefix: `${it.videoId}_${dlTag(it)}` }); } catch {} }
   DL = DL.filter(d => d.key !== key); PLS.forEach(p => p.keys = p.keys.filter(k => k !== key));
   saveDL(); savePL(); refreshDL(true); syncService();
 }
 
 if (YtDlp) {
-  YtDlp.addListener('progress', e => {
+  try { YtDlp.addListener('progress', e => {
     const it = DL.find(d => d.key === e.key); if (!it || it.status !== 'downloading') return;
     it.progress = Math.max(it.progress || 0, Math.round(e.progress * 10) / 10); it.eta = e.eta;
     const m = /DL:([\d.]+\s?\w+)/.exec(e.line || '') || /at\s+([\d.]+\s?\w+\/s)/.exec(e.line || '');
     if (m) it.speed = m[1].replace(/\/s$/, '') + '/s';
     patchRow(it);
-  });
+  }); } catch (err) { PLUGIN_ERR = String(err.message || err); }
   // رجوع من إغلاق التطبيق: اللي كان شغّال يبقى «متوقف» ويكمل بالاستئناف
   DL.forEach(d => { if (d.status === 'downloading' || d.status === 'queued') d.status = 'paused'; }); saveDL();
   // تحديث yt-dlp كل 12 ساعة (يوتيوب بيغيّر حاجات كتير)
   const lastUp = +localStorage.getItem('ytdlp_upd') || 0;
-  if (Date.now() - lastUp > 12 * 36e5) YtDlp.update().then(r => { localStorage.setItem('ytdlp_upd', Date.now()); localStorage.setItem('ytdlp_ver', r.version || ''); }).catch(() => {});
+  if (Date.now() - lastUp > 12 * 36e5) nat('update').then(r => { localStorage.setItem('ytdlp_upd', Date.now()); localStorage.setItem('ytdlp_ver', r.version || ''); }).catch(() => {});
 }
 
 // ── صفحة التحميلات ──
@@ -241,10 +243,10 @@ const ACT = {
   },
   setConc: (d, el) => { SET.concurrent = +el.value; saveSET(); pump(); },
   setAria: (d, el) => { SET.aria2c = el.checked; saveSET(); },
-  async updYt() { toast('جاري تحديث yt-dlp…'); try { const r = await YtDlp.update(); localStorage.setItem('ytdlp_ver', r.version || ''); toast('الإصدار: ' + r.version); } catch (e) { toast('فشل التحديث: ' + (e.message || e)); } },
+  async updYt() { toast('جاري تحديث yt-dlp…'); try { const r = await nat('update'); localStorage.setItem('ytdlp_ver', r.version || ''); toast('الإصدار: ' + r.version); } catch (e) { toast('فشل التحديث: ' + (e.message || e)); } },
 };
 document.addEventListener('click', e => {
-  if (performance.now() - lpAt < 700) { e.preventDefault(); e.stopPropagation(); return; }
+  if (performance.now() - lpAt < 450) { e.preventDefault(); e.stopPropagation(); return; }
   const t = e.target.closest('[data-act]'); if (!t || t.tagName === 'SELECT' || (t.tagName === 'INPUT' && t.type === 'checkbox')) return;
   ACT[t.dataset.act]?.(t.dataset, t, e);
 }, true);
@@ -262,11 +264,11 @@ document.addEventListener('pointerdown', e => {
 });
 ['pointerup', 'pointercancel', 'pointerleave'].forEach(n => document.addEventListener(n, () => clearTimeout(lpT)));
 document.addEventListener('pointermove', e => { if (Math.abs(e.clientX - lpX) > 10 || Math.abs(e.clientY - lpY) > 10) clearTimeout(lpT); });
-document.addEventListener('contextmenu', e => { const c = e.target.closest('.ep-card'); if (c) { e.preventDefault(); lpAt = performance.now(); dlSheet(c.dataset.id); } });
+document.addEventListener('contextmenu', e => { const c = e.target.closest('.ep-card'); if (c) { e.preventDefault(); if (document.getElementById('sheet_o')) return; lpAt = performance.now(); dlSheet(c.dataset.id); } });
 
 // ── CSS ──
 document.head.insertAdjacentHTML('beforeend', `<style>
-.ep-card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.ep-card img{-webkit-user-drag:none}
+.ep-card{-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}.ep-card img{-webkit-user-drag:none;pointer-events:none}
 #toast_el{position:fixed;left:50%;bottom:calc(24px + env(safe-area-inset-bottom,0px));transform:translate(-50%,30px);background:#1d1d1d;color:#f0f0f0;border:1px solid rgba(201,168,76,.35);padding:10px 16px;border-radius:12px;font:600 .85rem Cairo,sans-serif;z-index:400;opacity:0;pointer-events:none;transition:.25s;max-width:90vw;text-align:center}#toast_el.on{opacity:1;transform:translate(-50%,0)}
 #sheet_o{position:fixed;inset:0;z-index:300;font-family:Cairo,sans-serif}.sh-bg{position:absolute;inset:0;background:rgba(0,0,0,.6);opacity:0;transition:.2s}
 .sh{position:absolute;bottom:0;left:0;right:0;background:#151515;border-radius:18px 18px 0 0;padding:16px var(--px) calc(16px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:.25s;max-height:85dvh;overflow:auto;color:#f0f0f0}
@@ -291,3 +293,20 @@ h4{margin:16px 0 8px;font-size:.92rem;color:#c9a84c}.dl-sorthead{display:flex;ju
 .dl-acts{display:flex;flex-direction:column;gap:4px}.dl-b{background:#1d1d1d;border:1px solid rgba(255,255,255,.08);color:#ddd;border-radius:10px;width:38px;height:38px;display:flex;align-items:center;justify-content:center;cursor:pointer}.dl-b.del{color:#e57373}
 .dl-empty{text-align:center;color:#666;padding:48px 12px;line-height:1.9;font-size:.88rem}
 </style>`);
+
+// ── زر الرجوع في أندرويد: يقفل القائمة/البحث أولاً، بعدين يرجع صفحة، وفي الرئيسية يخرج ──
+(function initBackButton() {
+  if (!IS_NATIVE) return;
+  try {
+    const AppP = Capacitor.registerPlugin('App');
+    const p = AppP.addListener('backButton', ({ canGoBack }) => {
+      if (document.getElementById('sheet_o')) { closeSheet(); return; }
+      const sb = document.getElementById('srch_bar');
+      if (sb && sb.style.display === 'block') { closeSearchBar(); return; }
+      const h = location.hash || '#/';
+      if (h === '#/' || h === '') { AppP.exitApp(); return; }
+      if (canGoBack) history.back(); else navigate('#/');
+    });
+    p && p.catch && p.catch(() => {});
+  } catch (e) { /* لو الإضافة مش موجودة، أندرويد يستخدم الرجوع الافتراضي */ }
+})();

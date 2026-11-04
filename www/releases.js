@@ -108,7 +108,7 @@ async function checkNew(slot) {
 async function fillDuration(it) {
   if (!IS_NATIVE || typeof YtDlp === 'undefined' || !YtDlp) return;
   try {
-    const r = await YtDlp.info({ videoId: it.videoId });
+    const r = await nat('info', { videoId: it.videoId });
     const ep = EPISODES.find(e => e.videoId === it.videoId); if (ep) ep.duration = fmtDur(r.duration);
     const ex = loadExtras(); const x = ex.find(e => e.videoId === it.videoId);
     if (x) { x.duration = fmtDur(r.duration); localStorage.setItem(EXTRA_KEY, JSON.stringify(ex)); }

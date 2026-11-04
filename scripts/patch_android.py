@@ -18,7 +18,7 @@ t = g.read_text()
 t = t.replace("android {", """android {
     packagingOptions { jniLibs { useLegacyPackaging = true } }""", 1)
 t = t.replace("defaultConfig {", """defaultConfig {
-        ndk { abiFilters 'arm64-v8a', 'armeabi-v7a' }""", 1)
+        ndk { abiFilters 'arm64-v8a' }""", 1)
 LIB = "io.github.junkfood02.youtubedl-android"
 t = t.replace("dependencies {", f"""dependencies {{
     implementation "{LIB}:library:0.17.2"

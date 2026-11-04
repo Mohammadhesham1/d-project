@@ -4,6 +4,9 @@ on:
   workflow_dispatch:
 permissions:
   contents: write
+concurrency:
+  group: data-sync
+  cancel-in-progress: false
 jobs:
   update:
     runs-on: ubuntu-latest
@@ -13,6 +16,8 @@ jobs:
         with: {python-version: "3.12"}
       - run: pip install yt-dlp
       - run: python scripts/update_episodes.py
+        env:
+          YT_API_KEY: ${{ secrets.YT_API_KEY }}   # اختياري
       - name: Commit
         run: |
           if [ -n "$(git status --porcelain www/episodes.json)" ]; then
