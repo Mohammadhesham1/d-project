@@ -2,7 +2,19 @@
 //  التحميلات + قوائم التشغيل + الضغط المطوّل
 // ══════════════════════════════════════════════
 let PLUGIN_ERR = '';
-const YtDlp = (() => { try { return IS_NATIVE ? Capacitor.registerPlugin('YtDlp') : null; } catch (e) { PLUGIN_ERR = String(e.message || e); return null; } })();
+// الوصول للإضافات الأصلية بدون bundler: registerPlugin → Capacitor.Plugins → nativePromise
+function getPlugin(name) {
+  const C = window.Capacitor;
+  if (typeof C.registerPlugin === 'function') return C.registerPlugin(name);
+  if (C.Plugins && C.Plugins[name]) return C.Plugins[name];
+  if (typeof C.nativePromise === 'function') {
+    return new Proxy({}, { get: (_, m) => m === 'addListener'
+      ? (ev, cb) => (typeof C.addListener === 'function' ? C.addListener(name, ev, cb) : Promise.resolve())
+      : (o) => C.nativePromise(name, m, o || {}) });
+  }
+  throw new Error('جسر Capacitor غير متاح (' + name + ')');
+}
+const YtDlp = (() => { try { return IS_NATIVE ? getPlugin('YtDlp') : null; } catch (e) { PLUGIN_ERR = String(e.message || e); return null; } })();
 const nat = (m, a) => { try { return Promise.resolve(YtDlp[m](a)); } catch (e) { return Promise.reject(e); } };
 window.addEventListener('error', e => { if (/app\.js|downloads\.js|releases\.js/.test(e.filename || '')) toast('خطأ: ' + (e.message || '')); });
 const store = {
@@ -298,7 +310,7 @@ h4{margin:16px 0 8px;font-size:.92rem;color:#c9a84c}.dl-sorthead{display:flex;ju
 (function initBackButton() {
   if (!IS_NATIVE) return;
   try {
-    const AppP = Capacitor.registerPlugin('App');
+    const AppP = getPlugin('App');
     const p = AppP.addListener('backButton', ({ canGoBack }) => {
       if (document.getElementById('sheet_o')) { closeSheet(); return; }
       const sb = document.getElementById('srch_bar');
