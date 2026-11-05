@@ -1,6 +1,11 @@
 name: Build Android APK
 on:
   workflow_dispatch:
+    inputs:
+      fixed_key:
+        description: "Sign with the fixed key in keystore/ (turn off to test)"
+        type: boolean
+        default: true
   push:
     branches: [main]
     paths-ignore: ["www/episodes.json", "www/categories.json", "README.md"]
@@ -43,9 +48,26 @@ jobs:
         run: python3 scripts/patch_android.py
       - run: npx @capacitor/assets generate --android --iconBackgroundColor '#080808' --splashBackgroundColor '#080808'
       - run: npx cap sync android
+      - name: Use a fixed signing key (so new builds install over old ones)
+        if: ${{ github.event_name != 'workflow_dispatch' || inputs.fixed_key }}
+        run: |
+          mkdir -p ~/.android
+          if [ ! -f keystore/debug.keystore ]; then
+            mkdir -p keystore
+            keytool -genkeypair -keystore keystore/debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 4000 -storetype JKS -dname "CN=Android Debug,O=Android,C=US"
+          fi
+          cp keystore/debug.keystore ~/.android/debug.keystore
       - name: Build debug APK
         working-directory: android
         run: chmod +x gradlew && ./gradlew assembleDebug
+      - name: Verify the APK (signature + manifest summary)
+        run: |
+          BT=$(ls -d $ANDROID_HOME/build-tools/* | sort -V | tail -1)
+          APK=android/app/build/outputs/apk/debug/app-debug.apk
+          ls -l $APK
+          $BT/apksigner verify --verbose --print-certs $APK
+          $BT/aapt2 dump badging $APK | grep -E "^package|sdkVersion|targetSdk|native-code" || true
+          unzip -l $APK | grep -E "lib/.*(libpython|libaria2c|libffmpeg)" | head -5 || true
       - uses: actions/upload-artifact@v4
         with:
           name: aldahih-apk
