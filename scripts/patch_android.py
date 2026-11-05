@@ -4,7 +4,7 @@ import re, shutil, pathlib
 A = pathlib.Path("android")
 pkg = A / "app/src/main/java/com/aldahih/app"
 pkg.mkdir(parents=True, exist_ok=True)
-for f in ("MainActivity.java", "YtDlpPlugin.java", "DlService.java"):
+for f in ("MainActivity.java", "YtDlpPlugin.java", "DlService.java", "LoginActivity.java"):
     shutil.copy(f"native/{f}", pkg / f)
 
 # minSdk 24 مطلوب للمكتبة
@@ -29,7 +29,7 @@ g.write_text(t)
 m = A / "app/src/main/AndroidManifest.xml"
 t = m.read_text()
 t = t.replace("<application", '<application android:extractNativeLibs="true"', 1)
-t = t.replace("</application>", '    <service android:name=".DlService" android:exported="false" android:foregroundServiceType="dataSync" />\n    </application>', 1)
+t = t.replace("</application>", '    <service android:name=".DlService" android:exported="false" android:foregroundServiceType="dataSync" />\n    <activity android:name=".LoginActivity" android:exported="false" android:theme="@android:style/Theme.DeviceDefault.NoActionBar" />\n    </application>', 1)
 t = t.replace("</manifest>", """    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE_DATA_SYNC" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />

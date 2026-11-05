@@ -8,6 +8,8 @@ import com.getcapacitor.JSObject;
 import com.getcapacitor.Plugin;
 import com.getcapacitor.PluginCall;
 import com.getcapacitor.PluginMethod;
+import androidx.activity.result.ActivityResult;
+import com.getcapacitor.annotation.ActivityCallback;
 import com.getcapacitor.annotation.CapacitorPlugin;
 import com.yausername.aria2c.Aria2c;
 import com.yausername.ffmpeg.FFmpeg;
@@ -75,7 +77,10 @@ public class YtDlpPlugin extends Plugin {
             r.addOption("--merge-output-format", "mp4");   // دمج بدون إعادة ترميز (copy)
         }
         if (aria) r.addOption("--downloader", "libaria2c.so"); // 16 اتصال متوازي
-        if (client != null) r.addOption("--extractor-args", "youtube:player_client=" + client + "");
+        File ck = cookieFile();
+        boolean logged = ck.exists();
+        if (logged) r.addOption("--cookies", ck.getAbsolutePath());
+        if (client != null && !logged) r.addOption("--extractor-args", "youtube:player_client=" + client + "");
         return r;
     }
 
@@ -220,6 +225,34 @@ public class YtDlpPlugin extends Plugin {
                 activeDl.decrementAndGet();
             }
         });
+    }
+
+    private File cookieFile() { return new File(getContext().getFilesDir(), "cookies.txt"); }
+
+    @PluginMethod
+    public void openLogin(PluginCall call) {
+        startActivityForResult(call, new Intent(getContext(), LoginActivity.class), "loginResult");
+    }
+
+    @ActivityCallback
+    private void loginResult(PluginCall call, ActivityResult result) {
+        if (call == null) return;
+        JSObject o = new JSObject();
+        o.put("loggedIn", cookieFile().exists());
+        call.resolve(o);
+    }
+
+    @PluginMethod
+    public void hasLogin(PluginCall call) {
+        JSObject o = new JSObject();
+        o.put("loggedIn", cookieFile().exists());
+        call.resolve(o);
+    }
+
+    @PluginMethod
+    public void logout(PluginCall call) {
+        cookieFile().delete();
+        call.resolve();
     }
 
     @PluginMethod

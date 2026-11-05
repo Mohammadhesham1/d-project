@@ -162,7 +162,7 @@ function statusText(it) {
   if (it.status === 'done') return [it.mode === 'audio' ? 'صوت' : it.quality + 'p', fmtSize(it.size)].filter(Boolean).join(' • ');
   if (it.status === 'queued') return 'في الانتظار…';
   if (it.status === 'paused') return 'متوقف — اضغط استئناف';
-  if (it.status === 'error') return 'فشل: ' + (it.error || '');
+  if (it.status === 'error') return 'فشل: ' + (it.error || '') + (/sign in|not a bot/i.test(it.error || '') ? ' — سجّل الدخول من ⚙ الإعدادات' : '');
   const PH = { init: 'تجهيز المحرك لأول مرة (قد ياخد دقيقة)…', extract: 'جاري جلب معلومات الفيديو…', merge: 'جاري دمج الفيديو والصوت…', retry: 'تعثّر التحميل — بجرب طريقة تانية…' };
   if (!it.total || it.phase === 'merge') return PH[it.phase] || 'جاري التحضير…';
   const part = it.streams > 1 ? (it.stage === 0 ? 'فيديو' : 'صوت') + ' — ' : '';
@@ -257,11 +257,17 @@ const ACT = {
   plDel(d) { const p = PLS.find(x => x.id === d.id); if (p && confirm(`حذف قائمة «${p.name}»؟ (الحلقات تفضل محمّلة)`)) { PLS = PLS.filter(x => x !== p); savePL(); DLV.pl = 'all'; renderDownloads(); } },
   plPlay(d) { const p = PLS.find(x => x.id === d.id); const q = sortItems(DL.filter(x => x.status === 'done' && p.keys.includes(x.key))).map(x => x.key); if (q.length) openLocal(q[0], q); },
   settings() {
-    sheet(`<h3>إعدادات التحميل</h3>
+    const o = sheet(`<h3>إعدادات التحميل</h3>
       <label class="sh-chk"><span>تحميلات متزامنة</span><select data-act="setConc">${[1, 2, 3, 4].map(n => `<option ${SET.concurrent === n ? 'selected' : ''}>${n}</option>`).join('')}</select></label>
       <label class="sh-chk"><input type="checkbox" data-act="setAria" ${SET.aria2c ? 'checked' : ''}/><span>تسريع بـ aria2c (16 اتصال)</span></label>
-      <button class="sh-opt" data-act="updYt"><span>تحديث yt-dlp الآن</span><small>${esc(localStorage.getItem('ytdlp_ver') || '')}</small></button>`);
+      <button class="sh-opt" data-act="updYt"><span>تحديث yt-dlp الآن</span><small>${esc(localStorage.getItem('ytdlp_ver') || '')}</small></button>
+      <button class="sh-opt" data-act="ytLogin"><span>تسجيل الدخول بحساب جوجل</span><small id="login_st"></small></button>
+      <button class="sh-opt" data-act="ytLogout"><span>حذف جلسة تسجيل الدخول</span></button>
+      <p class="sh-note">لتخطّي رسالة «Sign in to confirm you're not a bot». استخدم حساباً ثانوياً: يوتيوب ممكن يقيّد الحسابات اللي بتُستخدم مع أدوات التحميل.</p>`);
+    nat('hasLogin').then(r => { const el = o.querySelector('#login_st'); if (el) el.textContent = r.loggedIn ? '✓ مسجّل' : ''; }).catch(() => {});
   },
+  async ytLogin() { closeSheet(); try { const r = await nat('openLogin'); toast(r.loggedIn ? 'تم حفظ الجلسة ✓ جرّب التحميل تاني' : 'لم تُحفظ الجلسة'); } catch (e) { toast('تعذّر فتح تسجيل الدخول: ' + (e.message || e)); } },
+  async ytLogout() { closeSheet(); try { await nat('logout'); toast('تم حذف الجلسة'); } catch (e) { toast('تعذّر الحذف'); } },
   setConc: (d, el) => { SET.concurrent = +el.value; saveSET(); pump(); },
   setAria: (d, el) => { SET.aria2c = el.checked; saveSET(); },
   async updYt() { toast('جاري تحديث yt-dlp…'); try { const r = await nat('update'); localStorage.setItem('ytdlp_ver', r.version || ''); toast('الإصدار: ' + r.version); } catch (e) { toast('فشل التحديث: ' + (e.message || e)); } },
