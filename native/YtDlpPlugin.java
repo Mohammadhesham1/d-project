@@ -75,7 +75,7 @@ public class YtDlpPlugin extends Plugin {
             r.addOption("--merge-output-format", "mp4");   // دمج بدون إعادة ترميز (copy)
         }
         if (aria) r.addOption("--downloader", "libaria2c.so"); // 16 اتصال متوازي
-        if (client != null) r.addOption("--extractor-args", "youtube:player_client=" + client + ";player_skip=webpage,configs");
+        if (client != null) r.addOption("--extractor-args", "youtube:player_client=" + client + "");
         return r;
     }
 
@@ -121,7 +121,7 @@ public class YtDlpPlugin extends Plugin {
                 final String tag = mode.equals("audio") ? "a" : "v" + q;
                 final String prefix = vid + "_" + tag;
                 final int streams = (mode.equals("video") && !q.equals("360")) ? 2 : 1;
-                String lastErr = "فشل التحميل";
+                StringBuilder errs = new StringBuilder();
                 // 0: aria2c + android_vr (بدون JS) — 1: تحميل عادي + android_vr — 2: العملاء الافتراضية
                 for (int attempt = useAria ? 0 : 1; attempt < 3; attempt++) {
                     if (attempt > 0) { cleanPartials(prefix); phase(key, "retry"); }
@@ -205,10 +205,15 @@ public class YtDlpPlugin extends Plugin {
                     } catch (Exception e) {
                         finished.set(true);
                         if (canceled.contains(key)) { call.reject("canceled"); return; }
-                        lastErr = stalled.get() ? "تعثّر التحميل" : (e.getMessage() == null ? e.toString() : e.getMessage());
+                        String msg = stalled.get() ? "تعثّر" : (e.getMessage() == null ? e.toString() : e.getMessage());
+                        msg = msg.trim().split("\\n")[0];
+                        if (msg.length() > 110) msg = msg.substring(0, 110);
+                        if (errs.length() > 0) errs.append(" | ");
+                        errs.append(att + 1).append(") ").append(msg);
                     }
                 }
-                call.reject(lastErr.length() > 300 ? lastErr.substring(0, 300) : lastErr);
+                String all = errs.length() == 0 ? "فشل التحميل" : errs.toString();
+                call.reject(all.length() > 500 ? all.substring(0, 500) : all);
             } catch (Exception e) {
                 call.reject(String.valueOf(e.getMessage()));
             } finally {

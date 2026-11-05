@@ -109,7 +109,7 @@ async function run(it) {
     it.status = 'done'; it.progress = 100; it.path = r.path; it.size = r.size; it.doneAt = Date.now(); it.speed = '';
     toast('اكتمل التحميل ✓ ' + it.title);
   } catch (e) {
-    if (it.status === 'downloading') { it.status = 'error'; it.error = String(e.message || e).slice(0, 160); }
+    if (it.status === 'downloading') { it.status = 'error'; it.error = String(e.message || e).slice(0, 400); }
   }
   saveDL(); pump(); refreshDL(true);
 }
