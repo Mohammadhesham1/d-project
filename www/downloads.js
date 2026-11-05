@@ -125,16 +125,22 @@ async function removeDl(key) {
 if (YtDlp) {
   try { YtDlp.addListener('progress', e => {
     const it = DL.find(d => d.key === e.key); if (!it || it.status !== 'downloading') return;
-    it.progress = Math.max(it.progress || 0, Math.round(e.progress * 10) / 10); it.eta = e.eta;
-    const m = /DL:([\d.]+\s?\w+)/.exec(e.line || '') || /at\s+([\d.]+\s?\w+\/s)/.exec(e.line || '');
-    if (m) it.speed = m[1].replace(/\/s$/, '') + '/s';
+    if (e.phase) {
+      it.phase = e.phase;
+      if (e.phase === 'retry') { it.total = ''; it.done = ''; it.speed = ''; it.progress = 0; }
+    } else {
+      it.phase = 'dl';
+      it.progress = Math.max(it.progress || 0, Math.round(e.progress * 10) / 10);
+      it.eta = e.eta; it.done = e.done || ''; it.total = e.total || ''; it.speed = e.speed || '';
+      it.stage = e.stage; it.streams = e.streams;
+    }
     patchRow(it);
   }); } catch (err) { PLUGIN_ERR = String(err.message || err); }
   // رجوع من إغلاق التطبيق: اللي كان شغّال يبقى «متوقف» ويكمل بالاستئناف
   DL.forEach(d => { if (d.status === 'downloading' || d.status === 'queued') d.status = 'paused'; }); saveDL();
   // تحديث yt-dlp كل 12 ساعة (يوتيوب بيغيّر حاجات كتير)
   const lastUp = +localStorage.getItem('ytdlp_upd') || 0;
-  if (Date.now() - lastUp > 12 * 36e5) nat('update').then(r => { localStorage.setItem('ytdlp_upd', Date.now()); localStorage.setItem('ytdlp_ver', r.version || ''); }).catch(() => {});
+  if (Date.now() - lastUp > 12 * 36e5) setTimeout(() => { if (!DL.some(d => d.status === 'downloading' || d.status === 'queued')) nat('update').then(r => { localStorage.setItem('ytdlp_upd', Date.now()); localStorage.setItem('ytdlp_ver', r.version || ''); }).catch(() => {}); }, 20000);
 }
 
 // ── صفحة التحميلات ──
@@ -157,7 +163,10 @@ function statusText(it) {
   if (it.status === 'queued') return 'في الانتظار…';
   if (it.status === 'paused') return 'متوقف — اضغط استئناف';
   if (it.status === 'error') return 'فشل: ' + (it.error || '');
-  return [`${Math.floor(it.progress || 0)}%`, it.speed, it.eta ? 'متبقي ' + fmtEta(it.eta) : ''].filter(Boolean).join(' • ');
+  const PH = { init: 'تجهيز المحرك لأول مرة (قد ياخد دقيقة)…', extract: 'جاري جلب معلومات الفيديو…', merge: 'جاري دمج الفيديو والصوت…', retry: 'تعثّر التحميل — بجرب طريقة تانية…' };
+  if (!it.total || it.phase === 'merge') return PH[it.phase] || 'جاري التحضير…';
+  const part = it.streams > 1 ? (it.stage === 0 ? 'فيديو' : 'صوت') + ' — ' : '';
+  return part + [`${it.done || '0'} / ${it.total}`, `${Math.floor(it.progress || 0)}%`, it.speed, it.eta ? 'متبقي ' + fmtEta(it.eta) : ''].filter(Boolean).join(' • ');
 }
 function rowHTML(it) {
   const k = esc(it.key), done = it.status === 'done';
